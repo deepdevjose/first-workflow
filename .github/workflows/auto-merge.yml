@@ -1,0 +1,29 @@
+name: Auto-Merge
+
+on:
+  # Se activa cuando se abre o se actualiza un Pull Request.
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  
+  # CRÍTICO: Se activa cuando los checks de un PR son completados (éxito o fallo).
+  status: {} 
+
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    
+    # 1. Este Job SOLO corre si hay un PR abierto.
+    if: github.event_name == 'pull_request' && github.event.pull_request.state == 'open'
+
+    steps:
+      - name: Auto-Merge si los checks son exitosos
+        uses: pascalgn/automerge-action@v0.15.6
+        env:
+          # Token de GitHub para realizar la acción de merge.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Tipo de merge: 'squash' es la mejor práctica para CI/CD.
+          MERGE_METHOD: squash
+          # Solo hacer merge si la rama base es 'main'.
+          BASE: main
+          # Esperar a que todos los checks (el job 'verify_code') pasen.
+          MERGE_LABELS: ""
