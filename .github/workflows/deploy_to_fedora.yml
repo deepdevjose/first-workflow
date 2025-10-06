@@ -1,0 +1,52 @@
+name: deploy_to_fedora
+
+on:
+  # 1. Se activa al crear o actualizar un Pull Request a la rama 'main' (para verificación)
+  pull_request:
+    branches:
+      - main
+  
+  # 2. Se activa al hacer push a 'main' (esto incluye el merge del PR)
+  push:
+    branches:
+      - main
+
+jobs:
+  # Job 1: Verificación de Código (Se ejecuta en el Pull Request)
+  verify_code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del Código
+        uses: actions/checkout@v4
+        
+      - name: Verificación de Archivos Estáticos
+        run: |
+          echo "Contenido del repositorio verificado. Listo para el despliegue."
+          # Muestra el contenido para verificar que 'index.html' esté presente
+          ls -l
+
+  # Job 2: Despliegue Final (SOLO se ejecuta al fusionar (merge) el PR en main)
+  deploy:
+    # Este trabajo solo se ejecuta si el trabajo 'verify_code' fue exitoso
+    needs: verify_code
+    # CRÍTICO: SOLO se ejecuta cuando el evento es un 'push' (lo que ocurre tras la fusión/merge)
+    if: github.event_name == 'push' 
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout del Código
+        uses: actions/checkout@v4
+
+      - name: Despliegue de index.html vía SFTP a Fedora
+        uses: appleboy/scp-action@v0.1.7 
+        with:
+          # Configuraciones de conexión usando Secretos
+          host: ${{ secrets.SSH_HOST }}        # -> 192.168.100.87
+          username: ${{ secrets.SSH_USERNAME }}  # -> josesfedora
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # El archivo a subir. Como solo tienes 'index.html', lo especificamos.
+          source: "./index.html" 
+          # La ubicación final en tu servidor Fedora
+          target: "/var/www/html/" 
+          # Opcional: Elimina archivos viejos en el destino antes de subir.
+          rm: true
