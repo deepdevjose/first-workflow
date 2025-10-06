@@ -1,12 +1,12 @@
 name: deploy_to_fedora
 
 on:
-  # 1. Se activa al crear o actualizar un Pull Request a la rama 'main' (para verificación)
+  # Se activa al crear o actualizar un Pull Request a la rama 'main' (Verificación)
   pull_request:
     branches:
       - main
   
-  # 2. Se activa al hacer push a 'main' (esto incluye el merge del PR)
+  # Se activa al hacer push a 'main' (Despliegue Final tras el merge)
   push:
     branches:
       - main
@@ -21,15 +21,14 @@ jobs:
         
       - name: Verificación de Archivos Estáticos
         run: |
-          echo "Contenido del repositorio verificado. Listo para el despliegue."
-          # Muestra el contenido para verificar que 'index.html' esté presente
-          ls -l
+          echo "Contenido del repositorio verificado. Archivo index.html listo."
+          ls -l index.html
 
   # Job 2: Despliegue Final (SOLO se ejecuta al fusionar (merge) el PR en main)
   deploy:
-    # Este trabajo solo se ejecuta si el trabajo 'verify_code' fue exitoso
+    # Depende de que el trabajo anterior 'verify_code' haya sido exitoso.
     needs: verify_code
-    # CRÍTICO: SOLO se ejecuta cuando el evento es un 'push' (lo que ocurre tras la fusión/merge)
+    # CRÍTICO: SOLO se ejecuta cuando el evento es un 'push' (al hacer merge a main).
     if: github.event_name == 'push' 
     runs-on: ubuntu-latest
     
@@ -37,16 +36,20 @@ jobs:
       - name: Checkout del Código
         uses: actions/checkout@v4
 
-      - name: Despliegue de index.html vía SFTP a Fedora
+      - name: Despliegue de index.html vía SFTP a Fedora (Usando ngrok)
         uses: appleboy/scp-action@v0.1.7 
         with:
-          # Configuraciones de conexión usando Secretos
-          host: ${{ secrets.SSH_HOST }}        # -> 192.168.100.87
-          username: ${{ secrets.SSH_USERNAME }}  # -> josesfedora
+          # Host dinámico proporcionado por ngrok (ej: 2.tcp.ngrok.io)
+          host: ${{ secrets.SSH_HOST }}       
+          # Username de tu Fedora (josesfedora)
+          username: ${{ secrets.SSH_USERNAME }}
+          # Clave SSH privada para la autenticación
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          # El archivo a subir. Como solo tienes 'index.html', lo especificamos.
+          # Puerto dinámico proporcionado por ngrok (ej: 12734)
+          port: ${{ secrets.SSH_PORT }} 
+          # Origen: solo el index.html
           source: "./index.html" 
-          # La ubicación final en tu servidor Fedora
+          # Destino final en tu servidor Apache/Nginx
           target: "/var/www/html/" 
-          # Opcional: Elimina archivos viejos en el destino antes de subir.
+          # Borra archivos viejos antes de subir (limpieza)
           rm: true
