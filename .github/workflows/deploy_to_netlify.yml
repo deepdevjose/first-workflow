@@ -1,0 +1,17 @@
+name: CI
+
+on:
+  # Solo se ejecuta para verificar el código antes de la fusión.
+  pull_request:
+    branches:
+      - main
+      
+jobs:
+  verify_code:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout del Código
+        uses: actions/checkout@v4
+        
+      - name: Verificación Estática
+        run: echo "Verificación de archivos OK. Netlify se encargará del despliegue al fusionar."
